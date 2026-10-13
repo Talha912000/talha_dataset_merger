@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MergeLab | Talha Khan</title>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f4f7fc;color:#17233c;font-family:Arial,sans-serif}
+header{background:#fff;border-bottom:1px solid #e4eaf2;padding:20px 6%;display:flex;justify-content:space-between;align-items:center}
+.brand{font-size:23px;font-weight:bold;color:#315efb}
+.badge{font-size:12px;color:#078878;background:#e4faf5;padding:9px 12px;border-radius:20px}
+.hero{max-width:1100px;margin:40px auto 25px;padding:0 20px}
+.eyebrow{color:#315efb;font-size:12px;font-weight:bold;letter-spacing:2px}
+h1{font-size:clamp(30px,5vw,44px);margin:12px 0;letter-spacing:-1px}
+.hero p{color:#69758c;line-height:1.7}
+.layout{max-width:1100px;margin:auto;padding:0 20px 40px;display:grid;grid-template-columns:1.6fr 1fr;gap:20px}
+.card{background:#fff;border:1px solid #e3e9f2;border-radius:18px;padding:23px;margin-bottom:18px;box-shadow:0 8px 25px #17233c08}
+h2{font-size:18px;margin:0 0 8px}
+.muted{font-size:13px;color:#718096;line-height:1.6}
+.uploads{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}
+.upload{border:2px dashed #cbd5e5;border-radius:13px;padding:20px 12px;text-align:center;background:#fafcff}
+.upload input{width:100%;font-size:12px;margin-top:14px}
+.filename{font-size:12px;color:#078878;overflow-wrap:anywhere;margin-top:8px}
+label{display:block;font-size:13px;font-weight:bold;margin:18px 0 8px}
+select,input[type=text]{width:100%;padding:12px;border:1px solid #d9e1ed;border-radius:10px;background:white;color:#17233c}
+.keys{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.joins{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.join{border:1px solid #e0e6f0;border-radius:11px;padding:13px;cursor:pointer}
+.join:has(input:checked){border-color:#315efb;background:#f1f4ff}
+.join input{accent-color:#315efb}
+.join b{font-size:13px}
+.join small{display:block;color:#718096;line-height:1.5;margin-top:5px}
+button{border:0;border-radius:11px;padding:14px 16px;font-weight:bold;cursor:pointer}
+.primary{background:linear-gradient(120deg,#315efb,#6545ed);color:#fff;width:100%;margin-top:22px}
+.secondary{background:#eef2f8;color:#35435a}
+.actions{display:flex;gap:10px}
+.actions button{flex:1}
+.status{display:none;margin-top:16px;padding:13px;border-radius:10px;font-size:13px;line-height:1.6;white-space:pre-line}
+.error{display:block;background:#fff0f1;color:#a22d39}
+.success{display:block;background:#e7faf4;color:#087e72}
+.stat{padding:13px;background:#f7f9fd;border-radius:10px;margin-top:12px;font-size:13px}
+.preview{overflow:auto;max-height:360px;margin-top:15px}
+table{border-collapse:collapse;width:100%;font-size:12px;white-space:nowrap}
+th,td{padding:10px;border:1px solid #e4eaf2;text-align:left}
+th{background:#eef2ff}
+footer{text-align:center;background:white;border-top:1px solid #e4eaf2;padding:24px;color:#8290a5;font-size:12px}
+footer b{color:#35435a}
+@media(max-width:760px){.layout{grid-template-columns:1fr}.uploads,.keys{grid-template-columns:1fr}header{gap:10px;flex-wrap:wrap}.hero{margin-top:28px}.card{padding:17px}}
+</style>
+</head>
+
+<body>
+<header>
+  <div class="brand">⇄ MergeLab</div>
+  <div class="badge">● Browser-based processing</div>
+</header>
+
+<section class="hero">
+  <div class="eyebrow">DATA PREPARATION STUDIO</div>
+  <h1>Bring your datasets<br>together, beautifully.</h1>
+  <p>Upload two files, match records using CNIC or any common column, and export your merged dataset.</p>
+</section>
+
+<main class="layout">
+<section>
+<div class="card">
+<h2>01 · Upload datasets</h2>
+<p class="muted">Choose CSV or Excel files from your device.</p>
+
+<div class="uploads">
+<div class="upload">
+<b>📁 Dataset 1</b>
+<input type="file" id="file1" accept=".csv,.xlsx,.xls">
+<div class="filename" id="name1">No file selected</div>
+</div>
+<div class="upload">
+<b>📁 Dataset 2</b>
+<input type="file" id="file2" accept=".csv,.xlsx,.xls">
+<div class="filename" id="name2">No file selected</div>
+</div>
+</div>
+
+<div class="keys">
+<div>
+<label for="key1">Dataset 1 matching column</label>
+<select id="key1" disabled><option>Upload files first</option></select>
+</div>
+<div>
+<label for="key2">Dataset 2 matching column</label>
+<select id="key2" disabled><option>Upload files first</option></select>
+</div>
+</div>
+
+<label>02 · Choose merge type</label>
+<div class="joins">
+<label class="join"><input type="radio" name="how" value="left" checked> <b>Left Join</b><small>Keep all Dataset 1 rows.</small></label>
+<label class="join"><input type="radio" name="how" value="inner"> <b>Inner Join</b><small>Keep matching rows only.</small></label>
+<label class="join"><input type="radio" name="how" value="right"> <b>Right Join</b><small>Keep all Dataset 2 rows.</small></label>
+<label class="join"><input type="radio" name="how" value="outer"> <b>Full Outer Join</b><small>Keep rows from both files.</small></label>
+</div>
+
+<label for="format">03 · Download format</label>
+<select id="format">
+<option value="csv">CSV (.csv)</option>
+<option value="xlsx">Excel (.xlsx)</option>
+</select>
+
+<label for="outname">Output filename</label>
+<input type="text" id="outname" value="merged_dataset">
+
+<div class="actions">
+<button class="primary" id="mergeBtn" onclick="mergeData()" disabled>⇄ Merge &amp; Preview</button>
+<button class="secondary" onclick="resetApp()">Reset</button>
+</div>
+<div id="status" class="status"></div>
+</div>
+
+<div class="card" id="resultCard" style="display:none">
+<h2>04 · Merged result</h2>
+<p class="muted" id="summary"></p>
+<div class="actions">
+<button class="primary" onclick="downloadData()">⬇ Download result</button>
+</div>
+<div class="preview" id="preview"></div>
+</div>
+</section>
+
+<aside>
+<div class="card">
+<h2>How it works</h2>
+<p class="muted">① Upload two datasets.</p>
+<p class="muted">② Select the matching column in each file. They can have different column names.</p>
+<p class="muted">③ Select a merge type.</p>
+<p class="muted">④ Preview and download the result.</p>
+</div>
+
+<div class="card">
+<h2>Tips for accurate matching</h2>
+<p class="muted"><b>CNIC:</b> Keep identifiers consistent in both files. Spaces at the beginning and end are removed.</p>
+<p class="muted"><b>Duplicates:</b> Duplicate matching keys can create multiple rows. Check your data before merging.</p>
+<p class="muted"><b>Excel:</b> If CNICs contain leading zeros, store them as text in Excel before uploading.</p>
+</div>
+
+<div class="card">
+<h2>Your privacy</h2>
+<p class="muted">Files are processed locally in your browser by this application. They are not uploaded to a Python server by the merge code. Avoid using sensitive data on an untrusted device.</p>
+</div>
+</aside>
+</main>
+
+<footer>Dataset Merger · Built with JavaScript · <b>Created by Talha Khan</b></footer>
+
+<script>
+let data1=null, data2=null, result=null;
+
+function readFile(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onerror=()=>reject(new Error("Could not read "+file.name));
+    reader.onload=e=>{
+      try{
+        if(file.name.toLowerCase().endsWith(".csv")){
+          const parsed=Papa.parse(e.target.result,{header:true,skipEmptyLines:true,dynamicTyping:false});
+          if(parsed.errors.some(x=>x.type==="Delimiter")) throw new Error("Could not parse CSV.");
+          resolve(parsed.data.map(row=>cleanRow(row)));
+        }else{
+          const workbook=XLSX.read(e.target.result,{type:"array",raw:false});
+          const sheet=workbook.Sheets[workbook.SheetNames[0]];
+          resolve(XLSX.utils.sheet_to_json(sheet,{defval:"",raw:false}).map(row=>cleanRow(row)));
+        }
+      }catch(err){reject(err);}
+    };
+    if(file.name.toLowerCase().endsWith(".csv")) reader.readAsText(file);
+    else reader.readAsArrayBuffer(file);
+  });
+}
+
+function cleanRow(row){
+  const out={};
+  for(const [k,v] of Object.entries(row)) out[String(k).trim()]=v==null?"":String(v);
+  return out;
+}
+
+function populateSelect(select,rows){
+  select.innerHTML="";
+  const cols=Object.keys(rows[0]||{});
+  for(const col of cols){
+    const opt=document.createElement("option");
+    opt.value=col;opt.textContent=col;select.appendChild(opt);
+  }
+  const preferred=cols.find(c=>c.toLowerCase().replace(/[^a-z0-9]/g,"")==="cnic");
+  if(preferred)select.value=preferred;
+  select.disabled=cols.length===0;
+}
+
+async function loadFiles(){
+  result=null;
+  document.getElementById("resultCard").style.display="none";
+  const f1=document.getElementById("file1").files[0];
+  const f2=document.getElementById("file2").files[0];
+  document.getElementById("name1").textContent=f1?f1.name:"No file selected";
+  document.getElementById("name2").textContent=f2?f2.name:"No file selected";
+  document.getElementById("mergeBtn").disabled=true;
+  if(!f1||!f2){data1=null;data2=null;return}
+  try{
+    showStatus("Reading files in your browser…","success");
+    [data1,data2]=await Promise.all([readFile(f1),readFile(f2)]);
+    if(!data1.length||!data2.length)throw new Error("One or both files have no data rows.");
+    populateSelect(document.getElementById("key1"),data1);
+    populateSelect(document.getElementById("key2"),data2);
+    document.getElementById("mergeBtn").disabled=false;
+    showStatus(`Files ready.\nDataset 1: ${data1.length.toLocaleString()} rows\nDataset 2: ${data2.length.toLocaleString()} rows`,"success");
+  }catch(e){data1=null;data2=null;showStatus(e.message,"error")}
+}
+
+document.getElementById("file1").addEventListener("change",loadFiles);
+document.getElementById("file2").addEventListener("change",loadFiles);
+
+function showStatus(msg,type){
+  const s=document.getElementById("status");
+  s.className="status "+type;s.textContent=msg;
+}
+
+function mergeData(){
+  try{
+    if(!data1||!data2)throw new Error("Upload both datasets first.");
+    const k1=document.getElementById("key1").value;
+    const k2=document.getElementById("key2").value;
+    if(!k1||!k2)throw new Error("Select a matching column in each dataset.");
+    const how=document.querySelector('input[name="how"]:checked').value;
+    const rightMap=new Map();
+    data2.forEach((row,i)=>{
+      const key=String(row[k2]??"").trim();
+      if(key==="")return;
+      if(!rightMap.has(key))rightMap.set(key,[]);
+      rightMap.get(key).push(i);
+    });
+    const matchedRight=new Set();
+    const rightCols=Object.keys(data2[0]||{});
+    const leftCols=Object.keys(data1[0]||{});
+    const outRightName={};
+    rightCols.forEach(c=>{
+      if(c===k2 && k1===k2){outRightName[c]=null;return}
+      outRightName[c]=leftCols.includes(c)?c+"_dataset2":c;
+    });
+    const outLeftName={};
+    leftCols.forEach(c=>outLeftName[c]=rightCols.includes(c)&&!(c===k1&&c===k2)?c+"_dataset1":c);
+
+    const output=[];
+    function combine(a,b){
+      const row={};
+      for(const c of leftCols)row[outLeftName[c]]=a?a[c]:"";
+      for(const c of rightCols){
+        if(outRightName[c]!==null)row[outRightName[c]]=b?b[c]:"";
+      }
+      return row;
+    }
+    data1.forEach(a=>{
+      const key=String(a[k1]??"").trim();
+      const matches=key===""?[]:(rightMap.get(key)||[]);
+      if(matches.length){
+        matches.forEach(i=>{matchedRight.add(i);output.push(combine(a,data2[i]));});
+      }else if(how==="left"||how==="outer"){
+        output.push(combine(a,null));
+      }
+    });
+    if(how==="right"||how==="outer"){
+      data2.forEach((b,i)=>{
+        if(!matchedRight.has(i))output.push(combine(null,b));
+      });
+    }
+    result=output;
+    document.getElementById("resultCard").style.display="block";
+    document.getElementById("summary").textContent=
+      `Merge complete: ${result.length.toLocaleString()} rows × ${Object.keys(result[0]||{}).length} columns. Join type: ${how.toUpperCase()}.`;
+    showStatus("Merge completed successfully.","success");
+    const rows=result.slice(0,100);
+    if(!rows.length){document.getElementById("preview").innerHTML="<p>No rows matched the selected join.</p>";return}
+    const cols=Object.keys(rows[0]);
+    const table=document.createElement("table");
+    const thead=document.createElement("thead"),tr=document.createElement("tr");
+    cols.forEach(c=>{const th=document.createElement("th");th.textContent=c;tr.appendChild(th)});
+    thead.appendChild(tr);table.appendChild(thead);
+    const tbody=document.createElement("tbody");
+    rows.forEach(row=>{
+      const tr=document.createElement("tr");
+      cols.forEach(c=>{const td=document.createElement("td");td.textContent=row[c]??"";tr.appendChild(td)});
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    const preview=document.getElementById("preview");
+    preview.replaceChildren(table);
+    if(result.length>100){const note=document.createElement("p");note.className="muted";note.textContent="Showing first 100 rows only. Download the file to get all records.";preview.appendChild(note)}
+  }catch(e){showStatus(e.message,"error")}
+}
+
+function downloadData(){
+  if(!result)return;
+  const format=document.getElementById("format").value;
+  let filename=document.getElementById("outname").value.trim()||"merged_dataset";
+  filename=filename.replace(/[\\/:*?"<>|]/g,"_").replace(/\.(csv|xlsx)$/i,"");
+  if(format==="csv"){
+    const csv=Papa.unparse(result);
+    const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"});
+    saveBlob(blob,filename+".csv");
+  }else{
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.json_to_sheet(result);
+    XLSX.utils.book_append_sheet(wb,ws,"Merged Data");
+    XLSX.writeFile(wb,filename+".xlsx");
+  }
+}
+
+function saveBlob(blob,name){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download=name;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+function resetApp(){
+  document.getElementById("file1").value="";
+  document.getElementById("file2").value="";
+  document.getElementById("name1").textContent="No file selected";
+  document.getElementById("name2").textContent="No file selected";
+  for(const id of ["key1","key2"]){
+    const s=document.getElementById(id);s.innerHTML="<option>Upload files first</option>";s.disabled=true;
+  }
+  document.getElementById("mergeBtn").disabled=true;
+  document.getElementById("resultCard").style.display="none";
+  document.getElementById("status").className="status";
+  data1=null;data2=null;result=null;
+}
+</script>
+</body>
+</html>
